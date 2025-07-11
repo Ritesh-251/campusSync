@@ -1,43 +1,27 @@
-import { useState } from "react";
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import { auth } from "./firebaseConfig"; // Yaha "./" lagana, path correct
+import { Routes, Route } from 'react-router-dom';
+import Login from './pages/Login';
+import Signup from './pages/SignupPages';
+import CompleteProfile from './pages/ProfileComplete';
+import DashboardLayout from './pages/DashboardLayout';
+import { Dashboard } from './pages/dashboard';
+import NoteSummarizerPage from './pages/Notesummarizer';
+import SyllabusPlanner from './pages/SyllabusPlanner';
 
-function App() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-
-  const handleSignup = () => {
-    createUserWithEmailAndPassword(auth, email, password)
-      .then((userCredential) => {
-        console.log("Signup Successful:", userCredential.user);
-        alert("Signup Success");
-      })
-      .catch((error) => {
-        console.error("Signup Error:", error.message);
-        alert("Signup Failed: " + error.message);
-      });
-  };
-
+const App = () => {
   return (
-    <div>
-      <h2>Test Firebase Signup</h2>
-      <input
-        type="email"
-        placeholder="Enter Email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-      />
-      <br />
-      <input
-        type="password"
-        placeholder="Enter Password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-      />
-      <br />
-      <button onClick={handleSignup}>Signup</button>
-    </div>
+    <Routes>
+      <Route path="/" element={<Login />} />
+      <Route path="/signup" element={<Signup />} />
+      <Route path="/complete-profile" element={<CompleteProfile />} />
+      
+      {/* Dashboard with Sidebar */}
+      <Route path="/dashboard" element={<DashboardLayout />}>
+        <Route index element={<Dashboard />} />
+        <Route path="note-summarizer" element={<NoteSummarizerPage />} />
+        <Route path="syllabus-planner" element={<SyllabusPlanner />} />
+      </Route>
+    </Routes>
   );
-}
+};
 
 export default App;

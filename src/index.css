@@ -1,1 +1,50 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
 @import "tailwindcss";
+body {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+/* In your CSS file or inside global styles */
+
+
+
+/* Add this in your global CSS (like index.css) or inside Tailwind's global layer */
+.react-calendar {
+  background-color: #ffffff;
+  border-radius: 1rem;
+  padding: 1rem;
+  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.05);
+  border: none;
+}
+
+.react-calendar__tile {
+  border-radius: 0.75rem;
+  padding: 0.75rem 0.5rem;
+  text-align: center;
+  transition: background 0.2s ease;
+}
+
+.react-calendar__tile--active {
+  background-color: #10B981;
+  color: white;
+}
+
+.react-calendar__tile:hover {
+  background-color: #D1FAE5;
+}
+
+.react-calendar__navigation button {
+  background: none;
+  border: none;
+  color: #10B981;
+  font-weight: bold;
+  font-size: 1rem;
+  margin: 0.25rem 0;
+}
+
+.react-calendar__month-view__days__day--neighboringMonth {
+  color: #9CA3AF;
+}
+
+.react-calendar__navigation button:disabled {
+  color: #D1D5DB;
+}
