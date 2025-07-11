@@ -1,82 +1,39 @@
-🎓 CampusSync
-CampusSync is a student-focused productivity web app designed to simplify campus life and help students stay organized with ease. It provides essential tools such as event tracking, syllabus planning, and note summarization — all in one place.
+# 🎓 CampusSync
 
-🚀 Features
-✅ Personal Dashboard: Overview of your profile, key dates, and shortcuts.
+CampusSync is a productivity-focused student dashboard designed to help students manage their academic tasks with ease. It provides essential tools such as event tracking, syllabus planning, and note summarization — all inside a clean, responsive dashboard.
 
-📅 Calendar with Events: Add and track events. Days with events are auto-highlighted.
+---
 
-📝 Note Summarizer: Quickly summarize your study notes using AI.
+## 📌 Features
+- **📅 Calendar with Event Sync:**  
+  Easily add and track events; dates with events are auto-highlighted.
 
-📋 Syllabus Planner: Upload your syllabus and plan your study sessions effectively.
+- **📝 Note Summarizer:**  
+  Summarize your notes instantly using AI-powered tools.
 
-🔐 Firebase Authentication: Secure login and user data handling.
+- **📋 Syllabus Planner:**  
+  Upload your syllabus and create a personalized study plan.
 
-☁️ Cloud Storage: All events and data are stored securely in Firebase.
+- **🔐 Secure Authentication:**  
+  Firebase Authentication to manage user sign-ins securely.
 
-🔗 Tech Stack
-React + Vite (Frontend)
+- **☁️ Cloud Storage:**  
+  All your data — events, syllabus, notes — securely stored on Firebase Firestore.
 
-Tailwind CSS (Styling)
+---
 
-Firebase (Auth, Firestore, Hosting)
+## 🛠 Tech Stack
+- **React + Vite** (Frontend Framework & Build Tool)
+- **Tailwind CSS** (Styling)
+- **Firebase** (Authentication, Firestore Database, Hosting)
+- **React Router DOM** (Routing)
+- **Recoil (Optional / Planned)** (State Management)
 
-React Router DOM (Routing)
+---
 
-Recoil (State Management — optional, for later scalability)
+## 🚀 Getting Started
 
-📂 Folder Structure (Simplified)
-css
-Copy
-Edit
-src/
-│
-├── Components/    → Reusable UI Components (Sidebar, Profile, Calendar, etc.)
-├── pages/         → Main Pages (Dashboard, Note Summarizer, Syllabus Planner, etc.)
-├── firebaseConfig/→ Firebase Setup
-├── App.jsx        → Routes Setup
-└── main.jsx       → App Entry Point
-🛠️ Setup Instructions
-Clone the repo:
-
-bash
-Copy
-Edit
+### 1️⃣ Clone the Repo
+```bash
 git clone https://github.com/yourusername/campussync.git
 cd campussync
-Install dependencies:
-
-bash
-Copy
-Edit
-npm install
-Configure Firebase:
-
-Add your Firebase config inside /firebaseConfig.js.
-
-Run locally:
-
-bash
-Copy
-Edit
-npm run dev
-Build for production:
-
-bash
-Copy
-Edit
-npm run build
-🌐 Live Demo
-Hosted on Firebase: https://campussync-8fc20.web.app
-
-🙌 Future Enhancements
-Dark Mode Support
-
-AI-powered Syllabus Planner
-
-Recoil Integration for Global State
-
-Notifications & Reminders
-
-Made with ❤️ for Students
-
