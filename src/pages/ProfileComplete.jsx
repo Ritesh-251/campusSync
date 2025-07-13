@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, updateDoc } from "firebase/firestore";
 import { auth, db } from "../firebaseConfig";
 import { useNavigate } from "react-router-dom";
 import InputComponent from "../Components/inputComponents.jsx";
 import ButtonComponents from "../Components/buttonComponents.jsx";
+import toast from "react-hot-toast";
 
 const CompleteProfile = () => {
   const [name, setName] = useState("");
@@ -20,22 +21,22 @@ const CompleteProfile = () => {
       const user = auth.currentUser;
 
       if (!user) {
-        alert("User not authenticated");
+        toast.error("User not authenticated.");
         setIsLoading(false);
         return;
       }
 
-      await setDoc(doc(db, "users", user.uid), {
+      await updateDoc(doc(db, "users", user.uid), {
         name,
         course,
         role,
-        email: user.email,
+        isProfileComplete: true, // ✅ Marking profile as completed
       });
 
-      alert("Profile Completed Successfully!");
+      toast.success("Profile completed successfully!");
       navigate("/dashboard");
     } catch (error) {
-      alert("Failed: " + error.message);
+      toast.error("Failed to save profile: " + error.message);
     } finally {
       setIsLoading(false);
     }
