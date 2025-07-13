@@ -1,10 +1,17 @@
 import { useState } from "react";
-import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, GithubAuthProvider } from "firebase/auth";
+import {
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  GoogleAuthProvider,
+  GithubAuthProvider,
+  getAdditionalUserInfo,
+} from "firebase/auth";
 import { auth } from "../firebaseConfig";
 import { useNavigate, Link } from "react-router-dom";
 import InputComponent from "../Components/inputComponents.jsx";
 import ButtonComponents from "../Components/buttonComponents.jsx";
 import { FaGoogle, FaGithub } from "react-icons/fa";
+import toast from "react-hot-toast";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -18,11 +25,11 @@ const Login = () => {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       console.log("Login Successful:", userCredential.user);
-      alert("Login Success!");
+      toast.success("Login Success!");
       navigate("/dashboard");
     } catch (error) {
       console.error("Login Error:", error.message);
-      alert("Login Failed: " + error.message);
+      toast.error("Login Failed: " + error.message);
     } finally {
       setIsLoading(false);
     }
@@ -32,12 +39,20 @@ const Login = () => {
     const provider = new GoogleAuthProvider();
     try {
       const result = await signInWithPopup(auth, provider);
-      console.log("Google Login Successful:", result.user);
-      alert("Logged in with Google!");
-      navigate("/dashboard");
+      const { user } = result;
+      const info = getAdditionalUserInfo(result);
+
+      console.log("Google Login Successful:", user);
+      toast.success("Logged in with Google!");
+
+      if (info?.isNewUser) {
+        navigate("/complete-profile");
+      } else {
+        navigate("/dashboard");
+      }
     } catch (error) {
       console.error("Google Login Error:", error.message);
-      alert("Google Login Failed: " + error.message);
+      toast.error("Google Login Failed: " + error.message);
     }
   };
 
@@ -45,12 +60,20 @@ const Login = () => {
     const provider = new GithubAuthProvider();
     try {
       const result = await signInWithPopup(auth, provider);
-      console.log("GitHub Login Successful:", result.user);
-      alert("Logged in with GitHub!");
-      navigate("/dashboard");
+      const { user } = result;
+      const info = getAdditionalUserInfo(result);
+
+      console.log("GitHub Login Successful:", user);
+      toast.success("Logged in with GitHub!");
+
+      if (info?.isNewUser) {
+        navigate("/complete-profile");
+      } else {
+        navigate("/dashboard");
+      }
     } catch (error) {
       console.error("GitHub Login Error:", error.message);
-      alert("GitHub Login Failed: " + error.message);
+      toast.error("GitHub Login Failed: " + error.message);
     }
   };
 
@@ -111,7 +134,10 @@ const Login = () => {
 
           <p className="text-center text-gray-600 text-sm pt-2">
             Don't have an account?{" "}
-            <Link to="/signup" className="text-teal-600 font-semibold hover:underline">
+            <Link
+              to="/signup"
+              className="text-teal-600 font-semibold hover:underline"
+            >
               Sign up here
             </Link>
           </p>
