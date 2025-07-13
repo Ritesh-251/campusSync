@@ -5,11 +5,13 @@ import {
   GoogleAuthProvider,
   GithubAuthProvider,
 } from "firebase/auth";
-import { auth } from "../firebaseConfig";
+import { doc, setDoc } from "firebase/firestore"; // ✅ added
+import { auth, db } from "../firebaseConfig";
 import InputComponent from "../Components/inputComponents.jsx";
 import ButtonComponents from "../Components/buttonComponents.jsx";
-import { FaGoogle, FaGithub } from "react-icons/fa"; 
+import { FaGoogle, FaGithub } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast"; // ✅ for better UX
 
 const Signup = () => {
   const [email, setEmail] = useState("");
@@ -29,12 +31,20 @@ const Signup = () => {
       );
       const user = userCredential.user;
 
-      console.log("Signup Successful:", user);
-      alert("Signup Success! Now complete your profile.");
+      // ✅ Save user info in Firestore with isProfileComplete = false
+      await setDoc(doc(db, "users", user.uid), {
+        email,
+        name: "",
+        course: "",
+        role: "",
+        isProfileComplete: false,
+      });
+
+      toast.success("Signup Success! Please complete your profile.");
       navigate("/complete-profile");
     } catch (error) {
       console.error("Signup Error:", error.message);
-      alert("Signup Failed: " + error.message);
+      toast.error("Signup Failed: " + error.message);
     } finally {
       setIsLoading(false);
     }
@@ -46,12 +56,20 @@ const Signup = () => {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
-      console.log("Google Sign-In Successful:", user);
-      alert("Signed in with Google! Now complete your profile.");
+      // ✅ Save user info in Firestore with isProfileComplete = false
+      await setDoc(doc(db, "users", user.uid), {
+        email: user.email,
+        name: user.displayName || "",
+        course: "",
+        role: "",
+        isProfileComplete: false,
+      });
+
+      toast.success("Signed in with Google! Please complete your profile.");
       navigate("/complete-profile");
     } catch (error) {
       console.error("Google Sign-In Error:", error.message);
-      alert("Google Sign-In Failed: " + error.message);
+      toast.error("Google Sign-In Failed: " + error.message);
     }
   };
 
@@ -61,12 +79,20 @@ const Signup = () => {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
-      console.log("GitHub Sign-In Successful:", user);
-      alert("Signed in with GitHub! Now complete your profile.");
+      // ✅ Save user info in Firestore with isProfileComplete = false
+      await setDoc(doc(db, "users", user.uid), {
+        email: user.email,
+        name: user.displayName || "",
+        course: "",
+        role: "",
+        isProfileComplete: false,
+      });
+
+      toast.success("Signed in with GitHub! Please complete your profile.");
       navigate("/complete-profile");
     } catch (error) {
       console.error("GitHub Sign-In Error:", error.message);
-      alert("GitHub Sign-In Failed: " + error.message);
+      toast.error("GitHub Sign-In Failed: " + error.message);
     }
   };
 
