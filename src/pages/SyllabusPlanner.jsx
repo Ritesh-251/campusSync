@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { auth } from '../firebaseConfig';
-import { onAuthStateChanged, signInAnonymously } from 'firebase/auth';
+import React, { useState, useEffect, useRef } from "react";
+import { auth } from "../firebaseConfig";
+import { onAuthStateChanged, signInAnonymously } from "firebase/auth";
+import { collection, addDoc } from "firebase/firestore";
+import { db } from "../firebaseConfig";
+import FullCalendarView from "../Components/fullcalnedar";
 
-// ✅ Retry with timeout logic
 const fetchWithRetry = async (url, options, retries = 3, timeout = 60000) => {
   for (let attempt = 0; attempt < retries; attempt++) {
     const controller = new AbortController();
@@ -13,28 +15,28 @@ const fetchWithRetry = async (url, options, retries = 3, timeout = 60000) => {
       if (res.ok) return res;
       const errorData = await res.json().catch(() => ({}));
       if (attempt === retries - 1) {
-        throw new Error(errorData.error?.message || 'Failed after retries.');
+        throw new Error(errorData.error?.message || "Failed after retries.");
       }
     } catch (err) {
-      if (attempt === retries - 1 || err.name === 'AbortError') {
+      if (attempt === retries - 1 || err.name === "AbortError") {
         throw new Error(
-          err.name === 'AbortError'
-            ? 'Model is busy right now. Please try again later.'
+          err.name === "AbortError"
+            ? "Model is busy right now. Please try again later."
             : err.message
         );
       }
     }
-    await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1))); // 1s, 2s, 3s
+    await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)));
   }
 };
 
 const SyllabusPlannerPage = () => {
   const [file, setFile] = useState(null);
-  const [studyPlan, setStudyPlan] = useState('');
+  const [studyPlan, setStudyPlan] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [chatHistory, setChatHistory] = useState([]);
-  const [userMessage, setUserMessage] = useState('');
+  const [userMessage, setUserMessage] = useState("");
   const [user, setUser] = useState(null);
   const [chatLoading, setChatLoading] = useState(false);
   const [calendarEvents, setCalendarEvents] = useState([]);
@@ -50,19 +52,23 @@ const SyllabusPlannerPage = () => {
   }, []);
 
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatHistory, chatLoading]);
 
   const handleFileChange = (e) => {
     const selected = e.target.files[0];
     if (
       selected &&
-      ['application/pdf', 'image/jpeg', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'].includes(selected.type)
+      [
+        "application/pdf",
+        "image/jpeg",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      ].includes(selected.type)
     ) {
       setFile(selected);
-      setError('');
+      setError("");
     } else {
-      setError('Please upload a .pdf, .jpeg, or .docx file.');
+      setError("Please upload a .pdf, .jpeg, or .docx file.");
       setFile(null);
     }
   };
@@ -77,18 +83,18 @@ const SyllabusPlannerPage = () => {
 
   const handleGeneratePlan = async () => {
     if (!file) {
-      setError('Please upload a syllabus file first.');
+      setError("Please upload a syllabus file first.");
       return;
     }
 
     setLoading(true);
-    setError('');
-    setStudyPlan('');
+    setError("");
+    setStudyPlan("");
     setChatHistory([]);
 
     try {
       const base64Data = await fileToBase64(file);
-      const base64 = base64Data.split(',')[1];
+      const base64 = base64Data.split(",")[1];
 
       const prompt = `
 You are a smart academic planner. Carefully read this syllabus and generate a personalized, study-friendly plan.
@@ -127,16 +133,17 @@ Create a clean, achievable study schedule that can realistically be followed.
       const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
       const res = await fetchWithRetry(API_ENDPOINT, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'x-goog-api-key': API_KEY,
+          "Content-Type": "application/json",
+          "x-goog-api-key": API_KEY,
         },
         body: JSON.stringify(payload),
       });
 
       const data = await res.json();
-      const planText = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No plan generated.';
+      const planText =
+        data.candidates?.[0]?.content?.parts?.[0]?.text || "No plan generated.";
       setStudyPlan(planText);
     } catch (err) {
       console.error(err);
@@ -149,23 +156,35 @@ Create a clean, achievable study schedule that can realistically be followed.
   const handleChat = async () => {
     if (!userMessage.trim()) return;
 
-    const updatedChat = [...chatHistory, { role: 'user', text: userMessage }];
+    const updatedChat = [...chatHistory, { role: "user", text: userMessage }];
     setChatHistory(updatedChat);
-    setUserMessage('');
+    setUserMessage("");
     setChatLoading(true);
 
     try {
       const fullConversation = [
         {
-          role: 'user',
+          role: "user",
           parts: [
             {
-              text: `The core document for our discussion is the following study plan:\n\n${studyPlan}\n\nPlease refer to this plan for all subsequent questions and adjustments.`,
+              text: `
+The core document for our discussion is the following study plan:
+
+${studyPlan}
+
+Instructions for every reply:
+- Never use asterisks (*), hyphens (-), pipes (|), or Markdown formatting (like **bold** or tables).
+- Do NOT return output in JSON unless explicitly asked.
+- Use clear paragraphs to explain changes, additions, or reductions.
+- Modify only the requested part, do not rewrite the whole plan unless asked.
+
+Keep everything clean and student-friendly.
+`.trim(),
             },
           ],
         },
         ...updatedChat.map((msg) => ({
-          role: msg.role === 'user' ? 'user' : 'model',
+          role: msg.role === "user" ? "user" : "model",
           parts: [{ text: msg.text }],
         })),
       ];
@@ -176,39 +195,81 @@ Create a clean, achievable study schedule that can realistically be followed.
       const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
       const res = await fetchWithRetry(API_ENDPOINT, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'x-goog-api-key': API_KEY,
+          "Content-Type": "application/json",
+          "x-goog-api-key": API_KEY,
         },
         body: JSON.stringify(payload),
       });
 
       const data = await res.json();
-      const geminiReply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response from Gemini.';
+      const geminiReply =
+        data.candidates?.[0]?.content?.parts?.[0]?.text ||
+        "No response from Gemini.";
 
       try {
         const parsed = JSON.parse(geminiReply);
-        setCalendarEvents(parsed);
+        if (Array.isArray(parsed) && parsed.every((ev) => ev.title && ev.start)) {
+          setCalendarEvents(parsed);
+          setChatHistory((prev) => [
+            ...prev,
+            {
+              role: "gemini",
+              text: "✅ Your updated plan has been added to the calendar.",
+            },
+          ]);
+        } else {
+          throw new Error("Invalid format in Gemini output.");
+        }
+      } catch {
         setChatHistory((prev) => [
           ...prev,
-          { role: 'gemini', text: '✅ Your updated plan has been added to the calendar.' },
+          { role: "gemini", text: geminiReply },
         ]);
-      } catch {
-        setChatHistory((prev) => [...prev, { role: 'gemini', text: geminiReply }]);
       }
     } catch (err) {
       console.error(err);
-      setError(err.message || 'Failed to chat with Gemini.');
+      setError(err.message || "Failed to chat with Gemini.");
     } finally {
       setChatLoading(false);
+    }
+  };
+
+  const handleSaveToCalendar = async () => {
+    if (!user || calendarEvents.length === 0) {
+      setError("No events to save.");
+      return;
+    }
+
+    try {
+      for (const event of calendarEvents) {
+        await addDoc(collection(db, "events"), {
+          ...event,
+          userId: user.uid,
+        });
+      }
+
+      setChatHistory((prev) => [
+        ...prev,
+        {
+          role: "gemini",
+          text: "✅ Final plan has been saved to your calendar!",
+        },
+      ]);
+      setCalendarEvents([]);
+    } catch (err) {
+      console.error("Error saving events:", err);
+      setError("Failed to save events to calendar.");
     }
   };
 
   return (
     <div className="flex flex-col bg-[#f8fcfb] min-h-screen p-8 gap-6">
       <h2 className="text-[32px] font-bold text-[#0e1b19]">Syllabus Planner</h2>
-      <p className="text-[#4e978b] text-sm mb-4">Upload your syllabus and create a personalized study plan.</p>
+      <p className="text-[#4e978b] text-sm mb-4">
+        Upload your syllabus and create a personalized study plan.
+      </p>
 
       <div className="flex flex-col gap-4 border-2 border-dashed border-[#d0e7e3] rounded-xl p-6">
         <input
@@ -222,7 +283,7 @@ Create a clean, achievable study schedule that can realistically be followed.
           className="bg-[#19e5c3] text-[#0e1b19] font-bold rounded-xl h-10 px-4 disabled:opacity-50"
           disabled={loading || !file}
         >
-          {loading ? 'Generating...' : 'Generate Study Plan'}
+          {loading ? "Generating..." : "Generate Study Plan"}
         </button>
       </div>
 
@@ -238,19 +299,33 @@ Create a clean, achievable study schedule that can realistically be followed.
         <>
           <div className="bg-[#e7f3f1] p-4 rounded-xl">
             <h3 className="font-semibold mb-2">Initial Study Plan:</h3>
-            <div className="whitespace-pre-wrap text-sm text-[#0e1b19]">{studyPlan}</div>
+            <div className="whitespace-pre-wrap text-sm text-[#0e1b19]">
+              {studyPlan}
+            </div>
           </div>
 
           <div className="flex flex-col gap-4 mt-6">
-            <h3 className="text-[#0e1b19] font-bold text-lg">Refine Your Plan (Chat with Gemini)</h3>
+            <h3 className="text-[#0e1b19] font-bold text-lg">
+              Refine Your Plan (Chat with Gemini)
+            </h3>
             <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto bg-[#f8fcfb] border border-[#d0e7e3] rounded-xl p-4">
               {chatHistory.map((msg, idx) => (
-                <div key={idx} className={`text-sm ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
-                  <span className="font-semibold">{msg.role === 'user' ? 'You:' : 'Gemini:'}</span> {msg.text}
+                <div
+                  key={idx}
+                  className={`text-sm ${
+                    msg.role === "user" ? "text-right" : "text-left"
+                  }`}
+                >
+                  <span className="font-semibold">
+                    {msg.role === "user" ? "You:" : "Gemini:"}
+                  </span>{" "}
+                  {msg.text}
                 </div>
               ))}
               {chatLoading && (
-                <div className="text-left text-sm text-[#4e978b] italic">Gemini is typing...</div>
+                <div className="text-left text-sm text-[#4e978b] italic">
+                  Gemini is typing...
+                </div>
               )}
               <div ref={chatEndRef} />
             </div>
@@ -262,7 +337,7 @@ Create a clean, achievable study schedule that can realistically be followed.
                 className="flex-1 border border-[#d0e7e3] rounded-lg p-2 text-sm resize-none"
                 rows={2}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
+                  if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
                     if (userMessage.trim()) handleChat();
                   }
@@ -275,10 +350,20 @@ Create a clean, achievable study schedule that can realistically be followed.
               >
                 Send
               </button>
+              {calendarEvents.length > 0 && (
+                <button
+                  onClick={handleSaveToCalendar}
+                  className="mt-2 bg-green-500 hover:bg-green-600 transition text-white font-semibold px-4 py-2 rounded-lg self-end"
+                >
+                  Finalize & Save to Calendar
+                </button>
+              )}
             </div>
           </div>
         </>
       )}
+
+      {calendarEvents.length > 0 && <FullCalendarView events={calendarEvents} />}
     </div>
   );
 };
