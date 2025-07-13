@@ -8,6 +8,7 @@ import NoteSummarizerPage from './pages/Notesummarizer';
 import SyllabusPlanner from './pages/SyllabusPlanner';
 import { Toaster } from 'react-hot-toast';
 import ProtectedRoute from './Components/ProtectedRoutes'; 
+import Settings from './pages/settings';
 
 const App = () => {
   return (
@@ -75,6 +76,7 @@ const App = () => {
           }
         >
           <Route index element={<Dashboard />} />
+          <Route path="settings" element={<Settings/>}/>
           <Route path="note-summarizer" element={<NoteSummarizerPage />} />
           <Route path="syllabus-planner" element={<SyllabusPlanner />} />
         </Route>

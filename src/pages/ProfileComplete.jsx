@@ -13,34 +13,39 @@ const CompleteProfile = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleProfileSubmit = async () => {
-    if (isLoading) return;
-    setIsLoading(true);
+ const handleProfileSubmit = async () => {
+  if (isLoading) return;
+  setIsLoading(true);
 
-    try {
-      const user = auth.currentUser;
+  try {
+    const user = auth.currentUser;
 
-      if (!user) {
-        toast.error("User not authenticated.");
-        setIsLoading(false);
-        return;
-      }
+    if (!user) {
+      toast.error("User not authenticated.");
+      setIsLoading(false);
+      return;
+    }
 
-      await updateDoc(doc(db, "users", user.uid), {
+    await setDoc(
+      doc(db, "users", user.uid),
+      {
         name,
         course,
         role,
-        isProfileComplete: true, // ✅ Marking profile as completed
-      });
+        email: user.email,
+        isProfileComplete: true,
+      },
+      { merge: true } // ✅ safe update
+    );
 
-      toast.success("Profile completed successfully!");
-      navigate("/dashboard");
-    } catch (error) {
-      toast.error("Failed to save profile: " + error.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    toast.success("Profile completed successfully!");
+    navigate("/dashboard");
+  } catch (error) {
+    toast.error("Failed to save profile: " + error.message);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2">

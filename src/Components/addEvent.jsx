@@ -30,7 +30,9 @@ const AddEvent = ({ userRole }) => {
       reminder,
       createdAt: new Date().toISOString(),
       createdByUID: user.uid,
+      createdByName: user.displayName || user.email || "Unknown",
       forCourse: selectedCourse,
+
     };
 
     try {

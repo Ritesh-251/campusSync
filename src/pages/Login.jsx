@@ -6,7 +6,8 @@ import {
   GithubAuthProvider,
   getAdditionalUserInfo,
 } from "firebase/auth";
-import { auth } from "../firebaseConfig";
+import { auth, db } from "../firebaseConfig";
+import { doc, getDoc } from "firebase/firestore";
 import { useNavigate, Link } from "react-router-dom";
 import InputComponent from "../Components/inputComponents.jsx";
 import ButtonComponents from "../Components/buttonComponents.jsx";
@@ -24,9 +25,20 @@ const Login = () => {
     setIsLoading(true);
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      console.log("Login Successful:", userCredential.user);
+      const user = userCredential.user;
+
+      console.log("Login Successful:", user);
       toast.success("Login Success!");
-      navigate("/dashboard");
+
+      const userDocRef = doc(db, "users", user.uid);
+      const userDocSnap = await getDoc(userDocRef);
+      const profileData = userDocSnap.exists() ? userDocSnap.data() : null;
+
+      if (profileData?.isProfileComplete) {
+        navigate("/dashboard", { replace: true });
+      } else {
+        navigate("/complete-profile", { replace: true });
+      }
     } catch (error) {
       console.error("Login Error:", error.message);
       toast.error("Login Failed: " + error.message);
@@ -39,16 +51,20 @@ const Login = () => {
     const provider = new GoogleAuthProvider();
     try {
       const result = await signInWithPopup(auth, provider);
-      const { user } = result;
+      const user = result.user;
       const info = getAdditionalUserInfo(result);
 
-      console.log("Google Login Successful:", user);
       toast.success("Logged in with Google!");
+      console.log("Google Login Successful:", user);
 
-      if (info?.isNewUser) {
-        navigate("/complete-profile");
+      const userDocRef = doc(db, "users", user.uid);
+      const userDocSnap = await getDoc(userDocRef);
+      const profileData = userDocSnap.exists() ? userDocSnap.data() : null;
+
+      if (info?.isNewUser || !profileData?.isProfileComplete) {
+        navigate("/complete-profile", { replace: true });
       } else {
-        navigate("/dashboard");
+        navigate("/dashboard", { replace: true });
       }
     } catch (error) {
       console.error("Google Login Error:", error.message);
@@ -60,16 +76,20 @@ const Login = () => {
     const provider = new GithubAuthProvider();
     try {
       const result = await signInWithPopup(auth, provider);
-      const { user } = result;
+      const user = result.user;
       const info = getAdditionalUserInfo(result);
 
-      console.log("GitHub Login Successful:", user);
       toast.success("Logged in with GitHub!");
+      console.log("GitHub Login Successful:", user);
 
-      if (info?.isNewUser) {
-        navigate("/complete-profile");
+      const userDocRef = doc(db, "users", user.uid);
+      const userDocSnap = await getDoc(userDocRef);
+      const profileData = userDocSnap.exists() ? userDocSnap.data() : null;
+
+      if (info?.isNewUser || !profileData?.isProfileComplete) {
+        navigate("/complete-profile", { replace: true });
       } else {
-        navigate("/dashboard");
+        navigate("/dashboard", { replace: true });
       }
     } catch (error) {
       console.error("GitHub Login Error:", error.message);

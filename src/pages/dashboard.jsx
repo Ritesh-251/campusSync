@@ -29,60 +29,70 @@ const Dashboard = () => {
   const [selectedEvent, setSelectedEvent] = useState(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        setLoading(false);
+  const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+
+    try {
+      const userDocRef = doc(db, "users", user.uid);
+      const userDocSnap = await getDoc(userDocRef);
+
+      if (!userDocSnap.exists()) {
+        toast.error("Profile not found.");
+        navigate("/complete-profile");
         return;
       }
 
-      try {
-        const userDocRef = doc(db, "users", user.uid);
-        const userDocSnap = await getDoc(userDocRef);
+      const userInfo = userDocSnap.data();
 
-        if (!userDocSnap.exists()) {
-          setLoading(false);
-          return;
-        }
-
-        const userInfo = userDocSnap.data();
-        setUserData(userInfo);
-
-        const uidEventsQuery = query(
-          collection(db, "events"),
-          where("forUID", "==", user.uid)
-        );
-
-        const courseEventsQuery = query(
-          collection(db, "events"),
-          where("forCourse", "==", userInfo.course)
-        );
-
-        const [uidSnap, courseSnap] = await Promise.all([
-          getDocs(uidEventsQuery),
-          getDocs(courseEventsQuery),
-        ]);
-
-        const allEvents = [...uidSnap.docs, ...courseSnap.docs].map((doc) => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            title: data.title,
-            date: data.date,
-            description: data.description || "",
-            reminder: data.reminder || false,
-          };
-        });
-
-        setEvents(allEvents);
-      } catch (error) {
-        console.error("Error fetching user/events:", error);
-      } finally {
-        setLoading(false);
+      if (!userInfo.isProfileComplete) {
+        navigate("/complete-profile");
+        return;
       }
-    });
 
-    return () => unsubscribe();
-  }, []);
+      setUserData(userInfo);
+
+      const uidEventsQuery = query(
+        collection(db, "events"),
+        where("forUID", "==", user.uid)
+      );
+
+      const courseEventsQuery = query(
+        collection(db, "events"),
+        where("forCourse", "==", userInfo.course)
+      );
+
+      const [uidSnap, courseSnap] = await Promise.all([
+        getDocs(uidEventsQuery),
+        getDocs(courseEventsQuery),
+      ]);
+
+      const allEvents = [...uidSnap.docs, ...courseSnap.docs].map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          title: data.title,
+          date: data.date,
+          description: data.description || "",
+          reminder: data.reminder || false,
+          createdByName: data.createdByName || "Unknown",
+        };
+      });
+
+      setEvents(allEvents);
+    } catch (error) {
+      console.error("Error fetching user/events:", error);
+      toast.error("Something went wrong while loading dashboard.");
+    } finally {
+      setLoading(false);
+    }
+  });
+
+  return () => unsubscribe();
+}, []);
+
 
   const formattedDate = new Intl.DateTimeFormat("en-US", {
     weekday: "long",
@@ -94,114 +104,115 @@ const Dashboard = () => {
   if (loading) return <div className="p-4">Loading...</div>;
 
   return (
-    <div className="flex flex-col h-screen bg-[#F9FAFB] font-[Plus Jakarta Sans]">
-      {/* Mobile Header */}
-     <header className="md:hidden sticky top-0 bg-white shadow-sm z-20 px-4 py-3 flex justify-between items-center">
-  <h1 className="text-xl font-bold text-gray-800">CampusSync</h1>
-  <div className="flex items-center space-x-4">
-    <button
-      className="text-gray-600 hover:text-emerald-500"
-      onClick={() => navigate("/dashboard/settings")}
-    >
-      <span className="material-icons">settings</span>
-    </button>
-    <button
-      className="text-gray-600 hover:text-emerald-500"
-      onClick={async () => {
-        try {
-          await auth.signOut();
-          navigate("/login");
-        } catch (error) {
-          console.error("Logout Error:", error.message);
-        }
-      }}
-    >
-      <span className="material-icons">logout</span>
-    </button>
-  </div>
-</header>
+  
+  <div className="flex flex-col h-screen bg-[#F9FAFB] font-[Plus Jakarta Sans]">
+    {/* Mobile Header */}
+    <header className="md:hidden sticky top-0 bg-white shadow-sm z-20 px-4 py-3 flex justify-between items-center">
+      <h1 className="text-xl font-bold text-gray-800">CampusSync</h1>
+      <div className="flex items-center space-x-4">
+        <button
+          className="text-gray-600 hover:text-emerald-500"
+          onClick={() => navigate("/dashboard/settings")}
+        >
+          <span className="material-icons">settings</span>
+        </button>
+        <button
+          className="text-gray-600 hover:text-emerald-500"
+          onClick={async () => {
+            try {
+              await auth.signOut();
+              navigate("/login");
+            } catch (error) {
+              console.error("Logout Error:", error.message);
+            }
+          }}
+        >
+          <span className="material-icons">logout</span>
+        </button>
+      </div>
+    </header>
 
-      {/* Main Scrollable Content */}
-      <main className="flex-grow overflow-y-auto pb-24 md:pb-0">
-        {/* Desktop Header */}
-        <div className="hidden md:flex bg-[#F3F4F6] h-44 items-center justify-center text-[#1F2937] text-xl font-semibold">
-          Dashboard
-        </div>
+    {/* Main Scrollable Content */}
+    <main className="flex-grow overflow-y-auto pb-24 md:pb-0">
+      {/* Desktop Header */}
+      <div className="hidden md:flex bg-[#F3F4F6] h-44 items-center justify-center text-[#1F2937] text-xl font-semibold">
+        Dashboard
+      </div>
 
-        {/* Grid Layout */}
-        <div className="grid grid-cols-1 md:grid-cols-10 gap-4 p-4 md:p-6">
-          {/* Profile */}
-          <div className="md:col-span-2 bg-white rounded-2xl shadow-md p-6 -translate-y-16 self-start">
-            <ProfileComponent userData={userData} />
+      {/* Grid Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 p-4 md:p-6">
+        {/* Left Side - Calendar / Daily View */}
+        <div className="lg:col-span-8 bg-white rounded-2xl shadow-md p-4">
+          <div className="mb-4">
+            <h2 className="text-xl font-bold text-[#10B981]">
+              Hi, {userData.name} 👋
+            </h2>
+            <p className="text-gray-600 mt-1 text-sm">{formattedDate}</p>
+          </div>
+
+          {/* Toggle */}
+          <div className="mb-4 flex space-x-2">
+            <button
+              className={`flex-1 px-4 py-2 rounded ${
+                view === "calendar"
+                  ? "bg-[#10B981] text-white"
+                  : "bg-gray-200 text-gray-700"
+              }`}
+              onClick={() => setView("calendar")}
+            >
+              Calendar
+            </button>
+            <button
+              className={`flex-1 px-4 py-2 rounded ${
+                view === "daily"
+                  ? "bg-[#10B981] text-white"
+                  : "bg-gray-200 text-gray-700"
+              }`}
+              onClick={() => setView("daily")}
+            >
+              Daily
+            </button>
           </div>
 
           {/* Calendar or Daily View */}
-          <div className="md:col-span-5 bg-white rounded-2xl shadow-md p-4">
-            <div className="mb-4">
-              <h2 className="text-xl font-bold text-[#10B981]">
-                Hi, {userData.name} 👋
-              </h2>
-              <p className="text-gray-600 mt-1 text-sm">{formattedDate}</p>
+          {view === "calendar" ? (
+            <div className="w-full overflow-y-auto max-h-[400px] rounded-xl border border-gray-200 shadow-sm">
+              <FullCalendar
+                plugins={[dayGridPlugin, interactionPlugin]}
+                initialView="dayGridMonth"
+                events={events.map((e) => ({
+                  title: e.title,
+                  date: e.date,
+                  color: "#10B981",
+                }))}
+                height="auto"
+                eventClick={(info) => {
+                  const matched = events.find(
+                    (e) =>
+                      e.title === info.event.title &&
+                      e.date === info.event.startStr
+                  );
+                  if (matched) setSelectedEvent(matched);
+                }}
+                headerToolbar={{
+                  left: "prev,next today",
+                  center: "title",
+                  right: "dayGridMonth,dayGridWeek",
+                }}
+              />
             </div>
+          ) : (
+            <DailyTimeline events={events} />
+          )}
+        </div>
 
-            {/* Toggle */}
-            <div className="mb-4 flex space-x-2">
-              <button
-                className={`flex-1 px-4 py-2 rounded ${
-                  view === "calendar"
-                    ? "bg-[#10B981] text-white"
-                    : "bg-gray-200 text-gray-700"
-                }`}
-                onClick={() => setView("calendar")}
-              >
-                Calendar
-              </button>
-              <button
-                className={`flex-1 px-4 py-2 rounded ${
-                  view === "daily"
-                    ? "bg-[#10B981] text-white"
-                    : "bg-gray-200 text-gray-700"
-                }`}
-                onClick={() => setView("daily")}
-              >
-                Daily
-              </button>
-            </div>
-
-            {/* Conditional View */}
-            {view === "calendar" ? (
-              <div className="w-full overflow-hidden rounded-xl border border-gray-200 shadow-sm">
-                <FullCalendar
-                  plugins={[dayGridPlugin, interactionPlugin]}
-                  initialView="dayGridMonth"
-                  events={events.map((e) => ({
-                    title: e.title,
-                    date: e.date,
-                    color: "#10B981",
-                  }))}
-                  height="auto"
-                  eventClick={(info) => {
-                    const matched = events.find(
-                      (e) =>
-                        e.title === info.event.title &&
-                        e.date === info.event.startStr
-                    );
-                    if (matched) setSelectedEvent(matched);
-                  }}
-                  headerToolbar={{
-                    left: "prev,next today",
-                    center: "title",
-                    right: "dayGridMonth,dayGridWeek",
-                  }}
-                />
-              </div>
-            ) : (
-              <DailyTimeline events={events} />
-            )}
+        {/* Right Side - Profile and Features */}
+        <div className="lg:col-span-4 flex flex-col space-y-4">
+          <div className="bg-white rounded-2xl shadow-md p-6 self-start hidden md:block">
+            <ProfileComponent userData={userData} />
           </div>
 
-          {/* Key Features */}
-          <div className="md:col-span-3 bg-white rounded-2xl shadow-md p-4 self-start">
+          <div className="bg-white rounded-2xl shadow-md p-4 ">
             <h3 className="text-[#1F2937] font-bold mb-2">Key Features</h3>
             <div className="space-y-3 pt-7">
               <button
@@ -228,47 +239,50 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
-      </main>
+      </div>
+    </main>
 
-      {/* Bottom Nav */}
-      <BottomNav />
+    {/* Bottom Nav */}
+    <BottomNav />
 
-      {/* Add Event Modal */}
-      <Modal
-        isOpen={isAddEventOpen}
-        onClose={() => setIsAddEventOpen(false)}
-        title="Add Event"
-      >
-        <AddEvent />
-      </Modal>
+    {/* Add Event Modal */}
+    <Modal
+      isOpen={isAddEventOpen}
+      onClose={() => setIsAddEventOpen(false)}
+      title="Add Event"
+    >
+      <AddEvent  userRole={userData?.role} />
+    </Modal>
 
-      {/* Event Details Modal */}
-      <Modal
-        isOpen={selectedEvent !== null}
-        onClose={() => setSelectedEvent(null)}
-        title="Event Details"
-      >
-        {selectedEvent && (
-          <div className="space-y-2">
-            <p>
-              <strong>Title:</strong> {selectedEvent.title}
-            </p>
-            <p>
-              <strong>Date:</strong> {selectedEvent.date}
-            </p>
-            <p>
-              <strong>Description:</strong>{" "}
-              {selectedEvent.description || "No description"}
-            </p>
-            <p>
-              <strong>Reminder:</strong>{" "}
-              {selectedEvent.reminder ? "Yes" : "No"}
-            </p>
-          </div>
-        )}
-      </Modal>
-    </div>
-  );
+    {/* Event Details Modal */}
+    <Modal
+      isOpen={selectedEvent !== null}
+      onClose={() => setSelectedEvent(null)}
+      title="Event Details"
+    >
+      {selectedEvent && (
+        <div className="space-y-2">
+          <p>
+            <strong>Title:</strong> {selectedEvent.title}
+          </p>
+          <p>
+            <strong>Date:</strong> {selectedEvent.date}
+          </p>
+          <p>
+            <strong>Description:</strong>{" "}
+            {selectedEvent.description || "No description"}
+          </p>
+          <p>
+            <strong>Reminder:</strong>{" "}
+            {selectedEvent.reminder ? "Yes" : "No"}
+          </p>
+          <p><strong>Added By:</strong> {selectedEvent.createdByName}</p> 
+        </div>
+      )}
+    </Modal>
+  </div>
+);
+
 };
 
 export { Dashboard };
